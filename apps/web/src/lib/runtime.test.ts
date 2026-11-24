@@ -16,7 +16,7 @@ const answers = (...values: Array<boolean | null>) => {
   return () => values[Math.min(call++, values.length - 1)] ?? null;
 };
 
-describe("web runtime relay telemetry policy", () => {
+describe("web runtime never exports relay traces", () => {
   it.each([
     {
       surface: "desktop opt-out",
@@ -44,7 +44,7 @@ describe("web runtime relay telemetry policy", () => {
       desktopBridge: undefined,
       exports: true,
     },
-  ])("applies $surface before the first relay span", async ({ desktopBridge, exports }) => {
+  ])("sends nothing for $surface", async ({ desktopBridge }) => {
     vi.resetModules();
     vi.stubEnv("T3CODE_TELEMETRY_ENABLED", "false");
     vi.stubEnv("T3CODE_OTEL_SDK_DISABLED", "true");
@@ -86,13 +86,7 @@ describe("web runtime relay telemetry policy", () => {
       await freshRuntime.dispose();
     }
 
-    if (exports) {
-      expect(fetchFn).toHaveBeenCalledOnce();
-      expect(String(fetchFn.mock.calls[0]?.[0])).toBe("https://telemetry.example.test/v1/traces");
-      const payload = new TextDecoder().decode(fetchFn.mock.calls[0]?.[1]?.body as Uint8Array);
-      expect(payload).toContain('"name":"relay.first-operation"');
-    } else {
-      expect(fetchFn).not.toHaveBeenCalled();
-    }
+    // This fork exports no relay traces, whatever the host setting says.
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 });
